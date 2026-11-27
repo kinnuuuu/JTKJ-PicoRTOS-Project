@@ -15,10 +15,10 @@
 #define BUFFER_SIZE 50
 
 //Add here necessary states
-enum state { IDLE=1, SENDING, RECEIVING};
+enum state { IDLE=1, SENDING, RECEIVING}; //needed program states
 volatile enum state programState = IDLE;
-enum sensormode { IMU=1, LIGHT};
-enum sensormode SensorMode = IMU;
+enum sensormode { IMU=1, LIGHT}; //states for different sensors
+volatile enum sensormode SensorMode = IMU;
 
 //Global datastructure to hold accelerometer data
 struct SensorData{
@@ -33,14 +33,23 @@ struct SensorData{
 
 //interrupt handler function
 static void button_handler(uint gpio, uint32_t eventMask){
-    if (gpio == BUTTON1 && eventMask == GPIO_IRQ_EDGE_FALL && programState == IDLE) //if interrupt came from button 1 and the event is press then change state
-        programState = SENDING;
-
+    if (gpio == BUTTON1 && eventMask == GPIO_IRQ_EDGE_FALL && programState == IDLE) {
+        programState = SENDING; 
+        //if interrupt came from button 1 and the event is press then change state
+    }
+    if (gpio == BUTTON2 && eventMask == GPIO_IRQ_EDGE_FALL) {
+        //button 2 changes which sensor is being used
+        if (SensorMode == IMU) {
+            SensorMode = LIGHT;
+        } else {
+            SensorMode = IMU;
+        }
+    }
 }
 
 static void IMU_Task(void *arg)
 {
-    // initializes acclerometer
+    // initializes accelerometer
     init_ICM42670();
     ICM42670_start_with_default_values();
 
@@ -224,7 +233,7 @@ int main()
                 &IMUtask);    // (en) A handle to control the execution of this task
 
     if(result != pdPASS) {
-        printf("light_task creation failed\n");
+        printf("IMU task creation failed\n");
         return 0;
     }
 
@@ -266,8 +275,9 @@ int main()
         return 0;
     }
 
-    // setting a new interrupt for button 1, event click
+    // setting a new interrupt for button 1 and 2, event click
     gpio_set_irq_enabled_with_callback(BUTTON1, GPIO_IRQ_EDGE_FALL, true, button_handler);
+    gpio_set_irq_enabled(BUTTON2, GPIO_IRQ_EDGE_FALL, true);
 
 
     // Start the scheduler (never returns)
