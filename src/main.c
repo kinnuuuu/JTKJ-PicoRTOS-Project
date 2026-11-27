@@ -1,6 +1,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include "morse_utils.h"
 
 #include <pico/stdlib.h>
 
@@ -172,8 +173,9 @@ static void show_morse(char message[])
 
     for (int i = 0; i < length; i+=20)
     {
-        char line[21]; //20 characters + null terminator
-        strncpy(line, message + i, 20);
+        char line[21] = ""; //20 characters + null terminator
+        morse_to_ascii(message, line);
+        // strncpy(line, message + i, 20);
         line[20] = '\0'; // Ensure null termination
         write_text_xy(0, (i/20) * 10 + 10, line); // Display each line with a vertical offset
     }

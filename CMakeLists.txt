@@ -77,6 +77,7 @@ ${CMAKE_CURRENT_LIST_DIR}/config
 add_subdirectory(libs/TKJHAT)
 # Support for usb serial communication
 add_subdirectory(libs/usb-serial-debug)
+add_subdirectory(libs/morse_utils)
 # If created new libraries, include them here. 
 # You can EDIT it if you add new libraries
 # ===============================================================================================
@@ -126,6 +127,7 @@ target_link_libraries(${MAIN_TARGET}
         FreeRTOS-Kernel
         FreeRTOS-Kernel-Heap4
         TKJHAT_SDK
+        morse_utils
 )
 
 # Include libraries necessaries to control the WiFi. If you are using the internal pico LED in W model, it is also 
