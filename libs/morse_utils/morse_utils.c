@@ -9,7 +9,7 @@ void morse_to_ascii(const char* input, char* dest){
     size_t len = strlen(input);
     char current[6];
 
-    for (size_t i = 0; i <= len; i++){
+    for (size_t i = 0; i < len; i++){
         if (input[i] == '-' || input[i] == '.' || input[i] == '\n'){
             current[strlen(current)] = input[i];
             continue;
