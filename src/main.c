@@ -14,6 +14,8 @@
 #define DEFAULT_STACK_SIZE 2048 
 #define BUFFER_SIZE 50
 
+static void imu_message(char* buffer);
+static void light_message(char *buffer);
 //Add here necessary states
 enum state { IDLE=1, SENDING, RECEIVING}; //needed program states
 volatile enum state programState = IDLE;
@@ -84,43 +86,82 @@ static void light_task(void *arg)
 
 // task for reading data and contructing/sending morse message based off of it
 static void morse_task(void *arg){
-    const float MARGIN_OF_ERROR = 0.8; //cant always hold the device at perfect angle, 80% there should be enough
     char buffer[BUFFER_SIZE] = ""; //initialize buffer so it wont contain garbage
-    init_red_led();
 
     for (;;)
     {
         if (programState == SENDING)
         {
-            // based on data; append a symbol at the end of the buffer
-            if (data.ay < -1 * MARGIN_OF_ERROR)
-            {
-                blink_red_led(1);
-                sprintf(buffer, strcat(buffer, "  \n"));
-                fwrite(buffer, 1, strlen(buffer), stdout); //write the data and flush it just in case
-                stdio_flush();
-                sprintf(buffer, ""); //reset buffer back to empty
-            }
-            else if (data.az >= 1 * MARGIN_OF_ERROR)
-            {
-                blink_red_led(1);
-                sprintf(buffer, strcat(buffer, " "));
-            }
-            else if (data.ax >= 1 * MARGIN_OF_ERROR)
-            {
-                blink_red_led(1);
-                sprintf(buffer, strcat(buffer, "-"));
-            }
-            else if (data.ax <= -1 * MARGIN_OF_ERROR)
-            {
-                blink_red_led(1);
-                sprintf(buffer, strcat(buffer, "."));
-            }
+        vTaskDelay(pdMS_TO_TICKS(10)); //delay slightly incase button triggers the interrupt twice
+            if (SensorMode == IMU)
+                imu_message(buffer);
+            if (SensorMode == LIGHT)
+                light_message(buffer);
             programState = IDLE;
         }
-        vTaskDelay(pdMS_TO_TICKS(300)); //slightly longer delay to avoid double press
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
+
+// a helper funciton for parsing acclerometer data to morse and sending it
+static void imu_message(char* buffer){
+    const float MARGIN_OF_ERROR = 0.8; //cant always hold the device at perfect angle, 80% there should be enough
+    // based on data; append a symbol at the end of the buffer
+    if (data.ay < -1 * MARGIN_OF_ERROR)
+    {
+        strcat(buffer, "  \n");
+        bool sent = (fwrite(buffer, 1, strlen(buffer), stdout) == strlen(buffer)); //write the data and compare retun value with buffer length
+        if (sent)
+            blink_red_led(1); // if sent succesfully blink once
+        else
+            blink_red_led(3); // else blink thrice
+
+        stdio_flush();
+        sprintf(buffer, ""); //reset buffer back to empty
+    }
+    else if (data.az >= 1 * MARGIN_OF_ERROR)
+    {
+        blink_red_led(1);
+        strcat(buffer, " ");
+    }
+    else if (data.ax >= 1 * MARGIN_OF_ERROR)
+    {
+        blink_red_led(1);
+        strcat(buffer, "-");
+    }
+    else if (data.ax <= -1 * MARGIN_OF_ERROR)
+    {
+        blink_red_led(1);
+        strcat(buffer, ".");
+    }
+}
+
+// a helper funciton for parsing light data to morse and sending it
+static void light_message(char* buffer){
+    if (lightdata < 300)
+        strcat(buffer, ".");
+    else if (lightdata < 700)
+        strcat(buffer, "-");
+    else {
+        size_t bufflen = strlen(buffer);
+        // if this is the third space then send the message
+        if (bufflen >= 2 && buffer[bufflen - 1] == ' ' && buffer[bufflen - 2] == ' '){
+            strcat(buffer, "\n");
+            bool sent = (fwrite(buffer, 1, strlen(buffer), stdout) == bufflen + 1); //write the data and compare retun value with buffer length
+            if (sent)
+                blink_red_led(1); // if sent succesfully blink once
+            else
+                blink_red_led(3); // else blink thrice
+
+            stdio_flush();
+            sprintf(buffer, ""); //reset buffer back to empty
+            return;
+        } else
+        strcat(buffer, " ");
+    }
+    blink_red_led(1);
+}
+
 
 static void show_morse(char message[])
 {
