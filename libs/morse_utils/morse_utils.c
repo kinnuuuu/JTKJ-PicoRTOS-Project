@@ -8,6 +8,7 @@ static char translate_morse(char* input);
 void morse_to_ascii(const char* input, char* dest){
     size_t len = strlen(input);
     char current[6];
+    memset(current, '\0', sizeof(current));
 
     for (size_t i = 0; i < len; i++){
         if (input[i] == '-' || input[i] == '.' || input[i] == '\n'){
@@ -23,6 +24,8 @@ void morse_to_ascii(const char* input, char* dest){
             }
         }
     }
+    if (strlen(current) > 0)
+        dest[strlen(dest)] = translate_morse(current);
 }
 
 static char translate_morse(char* input){
